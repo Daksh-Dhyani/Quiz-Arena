@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LearnQuest — Gamified Learning Hub</title>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f1a;
+      --bg2: #16162a;
+      --bg3: #1e1e35;
+      --surface: #22223b;
+      --border: rgba(255,255,255,0.08);
+      --accent: #6c63ff;
+      --accent2: #e84393;
+      --gold: #f7c948;
+      --green: #00d4a0;
+      --red: #ff4d6d;
+      --text: #e8e8f0;
+      --text2: #9090b0;
+      --radius: 14px;
+      --sidebar-w: 260px;
+      --font: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      overflow-x: hidden;
+    }
+
+    /* ===== LAYOUT ===== */
+    body { display: flex; min-height: 100vh; }
+
+    .sidebar {
+      width: var(--sidebar-w);
+      min-height: 100vh;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 1.5rem 1rem;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      overflow-y: auto;
+      z-index: 100;
+    }
+
+    .main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      padding: 2.5rem 2rem;
+      min-height: 100vh;
+      max-width: 900px;
+    }
+
+    /* ===== LOGO ===== */
+    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 1.8rem; }
+    .logo-icon {
+      font-size: 1.6rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .logo-text {
+      font-size: 1.25rem; font-weight: 700; letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* ===== PLAYER CARD ===== */
+    .player-card {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--surface); border-radius: var(--radius);
+      padding: 0.9rem; margin-bottom: 1.2rem; border: 1px solid var(--border);
+    }
+    .avatar {
+      width: 46px; height: 46px; border-radius: 50%;
+      background: var(--accent); display: flex; align-items: center;
+      justify-content: center; font-size: 1.3rem; font-weight: 700;
+      color: #fff; flex-shrink: 0; transition: background 0.3s;
+    }
+    .player-name { font-weight: 600; font-size: 0.95rem; }
+    .player-rank { font-size: 0.75rem; color: var(--gold); margin-top: 2px; }
+
+    /* ===== XP BAR ===== */
+    .xp-section { margin-bottom: 1.2rem; }
+    .xp-label-row {
+      display: flex; justify-content: space-between;
+      font-size: 0.75rem; color: var(--text2); margin-bottom: 6px;
+    }
+    .xp-bar-track { height: 8px; background: var(--surface); border-radius: 99px; overflow: hidden; }
+    .xp-bar-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 99px; transition: width 0.6s cubic-bezier(.4,0,.2,1);
+    }
+    .level-label { font-size: 0.72rem; color: var(--text2); text-align: right; margin-top: 5px; }
+
+    /* ===== STATS GRID ===== */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.5rem; }
+    .stat-box {
+      background: var(--surface); border-radius: 10px;
+      padding: 0.65rem 0.5rem; text-align: center; border: 1px solid var(--border);
+    }
+    .stat-val { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+    .stat-lbl { font-size: 0.65rem; color: var(--text2); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* ===== NAV ===== */
+    .nav-menu { display: flex; flex-direction: column; gap: 4px; }
+    .nav-btn {
+      background: none; border: none; color: var(--text2);
+      text-align: left; padding: 0.7rem 0.9rem; border-radius: 10px;
+      cursor: pointer; font-size: 0.88rem; font-family: var(--font); transition: all 0.2s;
+    }
+    .nav-btn:hover { background: var(--surface); color: var(--text); }
+    .nav-btn.active { background: var(--accent); color: #fff; font-weight: 600; }
+
+    /* ===== SECTIONS ===== */
+    .section { display: none; }
+    .section.active { display: block; }
+    .section-header { margin-bottom: 2rem; }
+    .section-header h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.3rem; }
+    .sub { color: var(--text2); font-size: 0.9rem; }
+
+    /* ===== SUBJECT PICKER ===== */
+    .subject-picker {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .subject-card {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.4rem; cursor: pointer;
+      transition: all 0.2s; position: relative; overflow: hidden;
+    }
+    .subject-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .subject-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(108,99,255,0.2); }
+    .subject-card:hover::before { opacity: 1; }
+    .subject-icon { font-size: 2rem; margin-bottom: 0.6rem; }
+    .subject-name { font-weight: 700; font-size: 1rem; margin-bottom: 0.25rem; }
+    .subject-desc { font-size: 0.78rem; color: var(--text2); margin-bottom: 0.5rem; }
+    .subject-diff { font-size: 0.72rem; color: var(--gold); }
+
+    /* ===== QUIZ BOX ===== */
+    .quiz-box { background: var(--bg3); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
+    .quiz-top-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1rem 1.4rem; border-bottom: 1px solid var(--border); background: var(--surface);
+    }
+    .quiz-subject-label { font-weight: 700; font-size: 0.95rem; }
+    .quiz-meta { display: flex; gap: 10px; align-items: center; }
+    .timer-pill {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 99px;
+      padding: 4px 12px; font-size: 0.8rem; font-weight: 600;
+      font-variant-numeric: tabular-nums; transition: color 0.3s, border-color 0.3s;
+    }
+    .timer-pill.urgent { color: var(--red); border-color: var(--red); }
+    .q-counter { font-size: 0.8rem; color: var(--text2); }
+
+    /* COMBO BAR — UNIQUE FEATURE */
+    .combo-bar {
+      background: linear-gradient(90deg, rgba(248,193,72,0.15), rgba(232,67,147,0.15));
+      border-bottom: 1px solid rgba(248,193,72,0.3);
+      padding: 0.5rem 1.4rem; font-size: 0.82rem; font-weight: 600;
+      color: var(--gold); animation: comboPulse 1.5s ease-in-out infinite;
+    }
+    @keyframes comboPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .question-card { padding: 1.8rem 1.4rem 1rem; }
+    .question-text { font-size: 1.2rem; font-weight: 600; line-height: 1.5; margin-bottom: 1.5rem; }
+    .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .option-btn {
+      background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px;
+      color: var(--text); padding: 0.9rem 1rem; cursor: pointer;
+      font-family: var(--font); font-size: 0.9rem; text-align: left;
+      transition: all 0.18s; line-height: 1.4;
+    }
+    .option-btn:hover:not(:disabled) { border-color: var(--accent); background: rgba(108,99,255,0.1); }
+    .option-btn.correct { background: rgba(0,212,160,0.15); border-color: var(--green); color: var(--green); }
+    .option-btn.wrong { background: rgba(255,77,109,0.12); border-color: var(--red); color: var(--red); }
+    .option-btn:disabled { cursor: default; }
+
+    .quiz-hint-row {
+      display: flex; align-items: center; gap: 1rem;
+      padding: 0.75rem 1.4rem 1.2rem; border-top: 1px solid var(--border);
+    }
+    .hint-btn {
+      background: none; border: 1px dashed var(--border); border-radius: 8px;
+      color: var(--text2); padding: 6px 12px; cursor: pointer;
+      font-size: 0.78rem; font-family: var(--font); transition: all 0.2s; white-space: nowrap;
+    }
+    .hint-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+    .hint-btn:disabled { opacity: 0.4; }
+    .hint-text { font-size: 0.8rem; color: var(--gold); flex: 1; font-style: italic; }
+
+    .result-feedback {
+      margin: 0 1.4rem 1.4rem; padding: 0.75rem 1rem;
+      border-radius: 10px; font-size: 0.88rem; font-weight: 600; text-align: center;
+    }
+    .result-feedback.correct { background: rgba(0,212,160,0.12); color: var(--green); border: 1px solid rgba(0,212,160,0.3); }
+    .result-feedback.wrong { background: rgba(255,77,109,0.1); color: var(--red); border: 1px solid rgba(255,77,109,0.25); }
+
+    /* ===== QUIZ COMPLETE ===== */
+    .quiz-complete {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 3rem 2rem; text-align: center;
+    }
+    .complete-icon { font-size: 3.5rem; margin-bottom: 0.75rem; }
+    .quiz-complete h2 { font-size: 1.8rem; margin-bottom: 1.5rem; }
+    .complete-stats { display: flex; gap: 1rem; justify-content: center; margin-bottom: 1.5rem; }
+    .cs-box {
+      background: var(--surface); border-radius: 12px;
+      padding: 1rem 1.5rem; min-width: 100px; border: 1px solid var(--border);
+    }
+    .cs-box span { display: block; font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+    .cs-box small { font-size: 0.72rem; color: var(--text2); }
+    .badge-unlock {
+      margin: 0 auto 1.5rem; display: inline-block;
+      background: rgba(247,201,72,0.15); border: 1px solid rgba(247,201,72,0.4);
+      border-radius: 99px; padding: 0.5rem 1.2rem;
+      font-size: 0.9rem; font-weight: 600; color: var(--gold);
+    }
+
+    /* ===== BUTTONS ===== */
+    .btn-primary, .btn-secondary {
+      border: none; border-radius: 10px; padding: 0.8rem 2rem;
+      font-size: 0.95rem; font-family: var(--font); cursor: pointer;
+      font-weight: 600; margin: 0.3rem; transition: all 0.2s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #574fda; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(108,99,255,0.4); }
+    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--bg3); }
+
+    /* ===== ACHIEVEMENTS ===== */
+    .badges-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
+    .badge-item {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.4rem 1rem;
+      text-align: center; transition: all 0.2s; position: relative; overflow: hidden;
+    }
+    .badge-item.unlocked { border-color: var(--gold); }
+    .badge-item.unlocked::before {
+      content: ''; position: absolute; top:0; left:0; right:0; bottom:0;
+      background: radial-gradient(circle at top, rgba(247,201,72,0.07), transparent 70%);
+    }
+    .badge-icon { font-size: 2.5rem; margin-bottom: 0.6rem; filter: grayscale(1) opacity(0.4); transition: filter 0.3s; }
+    .badge-item.unlocked .badge-icon { filter: none; }
+    .badge-name { font-weight: 700; font-size: 0.85rem; margin-bottom: 0.3rem; }
+    .badge-desc { font-size: 0.72rem; color: var(--text2); }
+    .badge-locked-label { font-size: 0.68rem; color: var(--text2); margin-top: 6px; }
+    .badge-item.unlocked .badge-locked-label { color: var(--gold); }
+
+    /* ===== LEADERBOARD ===== */
+    .leaderboard-table { display: flex; flex-direction: column; gap: 8px; }
+    .lb-row {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 12px; padding: 0.9rem 1.2rem; transition: background 0.2s;
+    }
+    .lb-row.you { border-color: var(--accent); background: rgba(108,99,255,0.07); }
+    .lb-rank { font-size: 1.2rem; font-weight: 700; min-width: 36px; }
+    .lb-avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      display:flex; align-items:center; justify-content:center;
+      font-weight:700; font-size:1rem; color:#fff;
+    }
+    .lb-name { flex: 1; font-weight: 600; font-size: 0.9rem; }
+    .lb-you-tag {
+      font-size: 0.68rem; background: var(--accent); color:#fff;
+      border-radius:99px; padding: 2px 8px; margin-left:6px;
+    }
+    .lb-points { font-size: 0.9rem; font-weight: 700; color: var(--gold); }
+    .lb-badge { font-size: 1rem; }
+
+    /* ===== PROFILE ===== */
+    .profile-form {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 2rem; margin-bottom: 1.5rem;
+    }
+    .form-group { margin-bottom: 1.5rem; }
+    .form-group label {
+      display: block; font-size: 0.82rem; color: var(--text2);
+      margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .form-group input[type="text"] {
+      width: 100%; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 0.7rem 1rem; color: var(--text);
+      font-family: var(--font); font-size: 0.95rem; outline: none; transition: border-color 0.2s;
+    }
+    .form-group input[type="text"]:focus { border-color: var(--accent); }
+    .color-picker { display: flex; gap: 10px; flex-wrap: wrap; }
+    .color-swatch {
+      width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+      border: 3px solid transparent; transition: all 0.2s;
+    }
+    .color-swatch.active { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
+    .form-group input[type="range"] { width: 100%; accent-color: var(--accent); margin-bottom: 6px; }
+    #goal-display { font-size: 0.82rem; color: var(--text2); }
+    .save-confirm { color: var(--green); font-size: 0.85rem; margin-top: 0.75rem; }
+    .profile-summary {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.5rem 2rem;
+    }
+    .profile-summary h3 { font-size: 1rem; margin-bottom: 1rem; }
+    .summary-rows { display: flex; flex-direction: column; gap: 10px; }
+    .summary-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0.5rem 0; border-bottom: 1px solid var(--border); font-size: 0.88rem;
+    }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-val { font-weight: 700; color: var(--accent); }
+
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed; bottom: 2rem; right: 2rem;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 0.85rem 1.3rem;
+      font-size: 0.88rem; font-weight: 600;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      opacity: 0; transform: translateY(20px); transition: all 0.3s;
+      z-index: 999; max-width: 320px;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ===== XP POPUP ===== */
+    .xp-popup {
+      position: fixed; bottom: 5rem; right: 2rem;
+      font-size: 1.3rem; font-weight: 800; color: var(--gold);
+      opacity: 0; pointer-events: none; z-index: 1000;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+    .xp-popup.float { animation: floatUp 1.4s ease forwards; }
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-60px); }
+    }
+
+    /* ===== SCROLLBAR ===== */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--surface); border-radius: 99px; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 720px) {
+      :root { --sidebar-w: 0px; }
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 1.5rem 1rem; }
+      .options-grid { grid-template-columns: 1fr; }
+      .subject-picker { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <span class="logo-icon">⚡</span>
+      <span class="logo-text">LearnQuest</span>
+    </div>
+
+    <div class="player-card">
+      <div class="avatar" id="avatar-display">?</div>
+      <div class="player-info">
+        <div class="player-name" id="player-name-display">Guest</div>
+        <div class="player-rank" id="player-rank">🥉 Novice</div>
+      </div>
+    </div>
+
+    <div class="xp-section">
+      <div class="xp-label-row">
+        <span>XP</span>
+        <span id="xp-display">0 / 500</span>
+      </div>
+      <div class="xp-bar-track">
+        <div class="xp-bar-fill" id="xp-bar"></div>
+      </div>
+      <div class="level-label">Level <span id="level-num">1</span></div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-val" id="stat-points">0</div>
+        <div class="stat-lbl">Points</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-streak">0🔥</div>
+        <div class="stat-lbl">Streak</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-correct">0</div>
+        <div class="stat-lbl">Correct</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-badges">0</div>
+        <div class="stat-lbl">Badges</div>
+      </div>
+    </div>
+
+    <nav class="nav-menu">
+      <button class="nav-btn active" data-section="quiz">🧠 Quiz Arena</button>
+      <button class="nav-btn" data-section="achievements">🏆 Achievements</button>
+      <button class="nav-btn" data-section="leaderboard">📊 Leaderboard</button>
+      <button class="nav-btn" data-section="profile">👤 Profile</button>
+    </nav>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- QUIZ SECTION -->
+    <section class="section active" id="section-quiz">
+      <div class="section-header">
+        <h1>Quiz Arena</h1>
+        <p class="sub">Choose a subject and test your knowledge. Earn XP, streaks &amp; badges!</p>
+      </div>
+
+      <div class="subject-picker" id="subject-picker">
+        <div class="subject-card" data-subject="math">
+          <div class="subject-icon">➗</div>
+          <div class="subject-name">Mathematics</div>
+          <div class="subject-desc">Algebra, geometry &amp; logic</div>
+          <div class="subject-diff">Difficulty: ⭐⭐</div>
+        </div>
+        <div class="subject-card" data-subject="science">
+          <div class="subject-icon">🔬</div>
+          <div class="subject-name">Science</div>
+          <div class="subject-desc">Physics, chemistry &amp; biology</div>
+          <div class="subject-diff">Difficulty: ⭐⭐⭐</div>
+        </div>
+        <div class="subject-card" data-subject="history">
+          <div class="subject-icon">🏛️</div>
+          <div class="subject-name">History</div>
+          <div class="subject-desc">World events &amp; civilizations</div>
+          <div class="subject-diff">Difficulty: ⭐⭐</div>
+        </div>
+        <div class="subject-card" data-subject="cs">
+          <div class="subject-icon">💻</div>
+          <div class="subject-name">Computer Science</div>
+          <div class="subject-desc">Programming &amp; algorithms</div>
+          <div class="subject-diff">Difficulty: ⭐⭐⭐⭐</div>
+        </div>
+        <div class="subject-card" data-subject="english">
+          <div class="subject-icon">📖</div>
+          <div class="subject-name">English</div>
+          <div class="subject-desc">Grammar, vocab &amp; literature</div>
+          <div class="subject-diff">Difficulty: ⭐</div>
+        </div>
+        <div class="subject-card" data-subject="geo">
+          <div class="subject-icon">🌍</div>
+          <div class="subject-name">Geography</div>
+          <div class="subject-desc">Countries, capitals &amp; maps</div>
+          <div class="subject-diff">Difficulty: ⭐⭐</div>
+        </div>
+      </div>
+
+      <!-- QUIZ BOX -->
+      <div class="quiz-box" id="quiz-box" style="display:none;">
+        <div class="quiz-top-bar">
+          <div class="quiz-subject-label" id="quiz-subject-label">Mathematics</div>
+          <div class="quiz-meta">
+            <span class="timer-pill" id="timer-pill">⏱ 15s</span>
+            <span class="q-counter" id="q-counter">Q 1 / 5</span>
+          </div>
+        </div>
+
+        <!-- COMBO BAR — UNIQUE FEATURE: Real-Time Combo Multiplier -->
+        <div class="combo-bar" id="combo-bar" style="display:none;">
+          <span id="combo-text">🔥 Combo x2 — Bonus points active!</span>
+        </div>
+
+        <div class="question-card">
+          <div class="question-text" id="question-text">Loading...</div>
+          <div class="options-grid" id="options-grid"></div>
+        </div>
+
+        <div class="quiz-hint-row">
+          <button class="hint-btn" id="hint-btn">💡 Use Hint (costs 10pts)</button>
+          <div class="hint-text" id="hint-text"></div>
+        </div>
+
+        <div class="result-feedback" id="result-feedback" style="display:none;"></div>
+      </div>
+
+      <!-- QUIZ COMPLETE -->
+      <div class="quiz-complete" id="quiz-complete" style="display:none;">
+        <div class="complete-icon">🎉</div>
+        <h2>Quiz Complete!</h2>
+        <div class="complete-stats">
+          <div class="cs-box"><span id="cs-score">0</span><small>Points Earned</small></div>
+          <div class="cs-box"><span id="cs-correct">0/5</span><small>Correct</small></div>
+          <div class="cs-box"><span id="cs-xp">+0 XP</span><small>XP Gained</small></div>
+        </div>
+        <div class="badge-unlock" id="badge-unlock" style="display:none;">
+          <span id="badge-unlock-text">🏅 New badge unlocked!</span>
+        </div>
+        <button class="btn-primary" id="play-again-btn">Play Again</button>
+        <button class="btn-secondary" id="change-subject-btn">Change Subject</button>
+      </div>
+    </section>
+
+    <!-- ACHIEVEMENTS SECTION -->
+    <section class="section" id="section-achievements">
+      <div class="section-header">
+        <h1>Achievements</h1>
+        <p class="sub">Earn badges by mastering subjects and reaching milestones.</p>
+      </div>
+      <div class="badges-grid" id="badges-grid"></div>
+    </section>
+
+    <!-- LEADERBOARD SECTION -->
+    <section class="section" id="section-leaderboard">
+      <div class="section-header">
+        <h1>Leaderboard</h1>
+        <p class="sub">See how you rank among other learners this week.</p>
+      </div>
+      <div class="leaderboard-table" id="leaderboard-table"></div>
+    </section>
+
+    <!-- PROFILE SECTION -->
+    <section class="section" id="section-profile">
+      <div class="section-header">
+        <h1>Your Profile</h1>
+        <p class="sub">Customize your learner identity.</p>
+      </div>
+      <div class="profile-form">
+        <div class="form-group">
+          <label>Display Name</label>
+          <input type="text" id="name-input" placeholder="Enter your name..." maxlength="20" />
+        </div>
+        <div class="form-group">
+          <label>Choose Avatar Color</label>
+          <div class="color-picker" id="color-picker">
+            <div class="color-swatch active" data-color="#6c63ff" style="background:#6c63ff;"></div>
+            <div class="color-swatch" data-color="#e84393" style="background:#e84393;"></div>
+            <div class="color-swatch" data-color="#00b894" style="background:#00b894;"></div>
+            <div class="color-swatch" data-color="#e17055" style="background:#e17055;"></div>
+            <div class="color-swatch" data-color="#0984e3" style="background:#0984e3;"></div>
+            <div class="color-swatch" data-color="#fdcb6e" style="background:#fdcb6e;"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Daily Goal (quizzes/day)</label>
+          <input type="range" id="goal-slider" min="1" max="10" value="3" />
+          <span id="goal-display">3 quizzes/day</span>
+        </div>
+        <button class="btn-primary" id="save-profile-btn">Save Profile</button>
+        <div class="save-confirm" id="save-confirm" style="display:none;">✅ Profile saved!</div>
+      </div>
+
+      <div class="profile-summary">
+        <h3>Your Stats Summary</h3>
+        <div class="summary-rows" id="summary-rows"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- TOAST NOTIFICATION -->
+  <div class="toast" id="toast"></div>
+
+  <!-- XP POPUP -->
+  <div class="xp-popup" id="xp-popup"></div>
+
+  <script>
+    /* =============================================================
+       LearnQuest — Embedded JavaScript (jQuery 3.7 + Vanilla JS)
+       Unique Feature: Real-time Combo Multiplier System
+       ============================================================= */
+
+    $(function () {
+
+      // ============================================================
+      // DATA — Questions Bank
+      // ============================================================
+      const QUESTIONS = {
+        math: [
+          { q: "What is the value of √144?", opts: ["10", "11", "12", "13"], ans: 2, hint: "Think: 12 × 12 = ?" },
+          { q: "If 3x + 7 = 22, what is x?", opts: ["3", "4", "5", "6"], ans: 2, hint: "Subtract 7 from both sides first." },
+          { q: "What is 15% of 200?", opts: ["25", "30", "35", "40"], ans: 1, hint: "15/100 × 200" },
+          { q: "How many sides does a heptagon have?", opts: ["5", "6", "7", "8"], ans: 2, hint: "Hepta means 7 in Greek." },
+          { q: "What is the area of a circle with radius 7? (Use π ≈ 3.14)", opts: ["153.86", "154.00", "143.86", "150.00"], ans: 0, hint: "Area = π × r²" },
+          { q: "Solve: 2³ + 3² = ?", opts: ["17", "18", "19", "20"], ans: 0, hint: "2³=8, 3²=9" },
+          { q: "What is LCM of 4 and 6?", opts: ["12", "8", "24", "6"], ans: 0, hint: "List multiples of each number." },
+          { q: "The sum of angles in a triangle is?", opts: ["90°", "180°", "270°", "360°"], ans: 1, hint: "Classic geometry fact." }
+        ],
+        science: [
+          { q: "Which gas do plants absorb during photosynthesis?", opts: ["Oxygen", "Nitrogen", "Carbon Dioxide", "Hydrogen"], ans: 2, hint: "It's the gas humans exhale." },
+          { q: "What is the chemical symbol for Gold?", opts: ["Go", "Gd", "Au", "Ag"], ans: 2, hint: "From the Latin word 'Aurum'." },
+          { q: "Which planet has the most moons?", opts: ["Jupiter", "Saturn", "Uranus", "Neptune"], ans: 1, hint: "Updated in 2023 discoveries." },
+          { q: "What is the speed of light (approx.) in km/s?", opts: ["200,000", "300,000", "400,000", "150,000"], ans: 1, hint: "About 3×10⁸ m/s" },
+          { q: "Newton's 2nd law: F = ?", opts: ["m+a", "m×a", "m÷a", "m-a"], ans: 1, hint: "Force equals mass times ..." },
+          { q: "What is the powerhouse of the cell?", opts: ["Nucleus", "Ribosome", "Mitochondria", "Golgi body"], ans: 2, hint: "Classic biology meme." },
+          { q: "Which element has atomic number 1?", opts: ["Helium", "Hydrogen", "Lithium", "Oxygen"], ans: 1, hint: "The lightest and most abundant." },
+          { q: "Sound travels fastest through which medium?", opts: ["Air", "Water", "Vacuum", "Solids"], ans: 3, hint: "Denser medium = faster sound." }
+        ],
+        history: [
+          { q: "In which year did World War II end?", opts: ["1943", "1944", "1945", "1946"], ans: 2, hint: "V-E Day was in May, V-J Day in September." },
+          { q: "Who was the first President of the USA?", opts: ["Lincoln", "Jefferson", "Washington", "Adams"], ans: 2, hint: "He refused to be called king." },
+          { q: "The Great Wall of China was primarily built by which dynasty?", opts: ["Han", "Ming", "Tang", "Qin"], ans: 1, hint: "They also built the Forbidden City." },
+          { q: "Which empire was ruled by Julius Caesar?", opts: ["Greek", "Ottoman", "Roman", "Persian"], ans: 2, hint: "Et tu, Brute?" },
+          { q: "The Indian independence was achieved in which year?", opts: ["1945", "1946", "1947", "1948"], ans: 2, hint: "August 15th is the date to remember." },
+          { q: "Who wrote the 'I Have a Dream' speech?", opts: ["Malcolm X", "MLK Jr.", "Obama", "Rosa Parks"], ans: 1, hint: "Civil rights leader, 1963 March on Washington." },
+          { q: "The French Revolution began in which year?", opts: ["1776", "1789", "1799", "1804"], ans: 1, hint: "Year of the Bastille storming." },
+          { q: "Which country gifted the Statue of Liberty to the USA?", opts: ["UK", "Germany", "France", "Spain"], ans: 2, hint: "Liberté, égalité, fraternité." }
+        ],
+        cs: [
+          { q: "What does CPU stand for?", opts: ["Central Processing Unit", "Core Processing Unit", "Computer Power Unit", "Central Program Utility"], ans: 0, hint: "The 'brain' of the computer." },
+          { q: "Which data structure works on LIFO principle?", opts: ["Queue", "Stack", "Array", "Tree"], ans: 1, hint: "Last In, First Out — like a stack of plates." },
+          { q: "What does HTML stand for?", opts: ["HyperText Markup Language", "HyperText Machine Language", "High Transfer Markup Lang", "Home Text Maker Lang"], ans: 0, hint: "It structures web pages." },
+          { q: "Which sorting algorithm has O(n log n) average complexity?", opts: ["Bubble Sort", "Selection Sort", "Merge Sort", "Linear Sort"], ans: 2, hint: "Uses divide and conquer." },
+          { q: "In binary, what is 1010?", opts: ["8", "9", "10", "11"], ans: 2, hint: "8+2=?" },
+          { q: "Which keyword is used to declare a variable in Python?", opts: ["var", "let", "dim", "None — just assign"], ans: 3, hint: "Python is dynamic typed." },
+          { q: "What is the output of: print(type(3.14)) in Python?", opts: ["int", "float", "double", "decimal"], ans: 1, hint: "3.14 has a decimal point." },
+          { q: "What does 'git clone' do?", opts: ["Creates a new repo", "Copies a repo locally", "Merges branches", "Deletes a branch"], ans: 1, hint: "Useful to get a remote repo." }
+        ],
+        english: [
+          { q: "What is the synonym of 'Eloquent'?", opts: ["Mute", "Articulate", "Clumsy", "Reserved"], ans: 1, hint: "Means speaking fluently and persuasively." },
+          { q: "Choose the correct sentence:", opts: ["She don't know.", "She doesn't know.", "She not know.", "She no knows."], ans: 1, hint: "Third-person singular uses 'doesn't'." },
+          { q: "What literary device is: 'The wind whispered through the trees'?", opts: ["Simile", "Metaphor", "Personification", "Alliteration"], ans: 2, hint: "Giving human traits to non-human things." },
+          { q: "What is the plural of 'criterion'?", opts: ["Criterions", "Criteria", "Criterias", "Criterion"], ans: 1, hint: "Latin-origin word, irregular plural." },
+          { q: "Which word is an antonym of 'benevolent'?", opts: ["Kind", "Generous", "Malevolent", "Helpful"], ans: 2, hint: "The prefix 'mal-' means bad." },
+          { q: "Identify the verb: 'The cat quickly ran across the street.'", opts: ["cat", "quickly", "ran", "across"], ans: 2, hint: "Action words are verbs." },
+          { q: "What is a haiku?", opts: ["14-line poem", "3-line poem (5-7-5)", "Rhyming couplet", "Epic narrative"], ans: 1, hint: "Japanese poetic form." },
+          { q: "'To kill two birds with one stone' is an example of:", opts: ["Simile", "Idiom", "Oxymoron", "Hyperbole"], ans: 1, hint: "Figurative expression with a different meaning." }
+        ],
+        geo: [
+          { q: "What is the capital of Australia?", opts: ["Sydney", "Melbourne", "Canberra", "Brisbane"], ans: 2, hint: "Not the largest city — built as a compromise!" },
+          { q: "Which is the longest river in the world?", opts: ["Amazon", "Nile", "Yangtze", "Mississippi"], ans: 1, hint: "Flows through Africa." },
+          { q: "Which country has the most natural lakes?", opts: ["USA", "Russia", "Canada", "Brazil"], ans: 2, hint: "Home to the Great Lakes too." },
+          { q: "Mount Everest is in which mountain range?", opts: ["Alps", "Andes", "Rockies", "Himalayas"], ans: 3, hint: "Between Nepal and Tibet." },
+          { q: "What is the smallest country in the world by area?", opts: ["Monaco", "San Marino", "Vatican City", "Liechtenstein"], ans: 2, hint: "Located within Rome, Italy." },
+          { q: "The Amazon Rainforest is primarily in which country?", opts: ["Colombia", "Brazil", "Peru", "Venezuela"], ans: 1, hint: "Largest country in South America." },
+          { q: "Which ocean is the largest?", opts: ["Atlantic", "Indian", "Arctic", "Pacific"], ans: 3, hint: "Covers more than 30% of Earth's surface." },
+          { q: "What is the capital of Japan?", opts: ["Osaka", "Kyoto", "Tokyo", "Hiroshima"], ans: 2, hint: "One of the world's most populous cities." }
+        ]
+      };
+
+      const BADGES = [
+        { id: "first_blood",   icon: "⚡", name: "First Spark",   desc: "Complete your first quiz",           condition: (s) => s.totalQuizzes >= 1 },
+        { id: "streak3",       icon: "🔥", name: "On Fire",       desc: "Get a 3-answer streak",              condition: (s) => s.maxStreak >= 3 },
+        { id: "perfectionist", icon: "💎", name: "Perfectionist", desc: "Score 5/5 in a quiz",                condition: (s) => s.perfectQuizzes >= 1 },
+        { id: "century",       icon: "💯", name: "Century Club",  desc: "Earn 100+ total points",             condition: (s) => s.totalPoints >= 100 },
+        { id: "combo_king",    icon: "👑", name: "Combo King",    desc: "Reach a x4 combo multiplier",        condition: (s) => s.maxCombo >= 4 },
+        { id: "scholar",       icon: "🎓", name: "Scholar",       desc: "Complete 5 quizzes",                 condition: (s) => s.totalQuizzes >= 5 },
+        { id: "speedster",     icon: "⚡", name: "Speedster",     desc: "Answer quickly (3 times)",           condition: (s) => s.speedAnswers >= 3 },
+        { id: "all_rounder",   icon: "🌟", name: "All-Rounder",   desc: "Play all 6 subjects",                condition: (s) => s.subjectsPlayed.size >= 6 },
+        { id: "grand_master",  icon: "🏆", name: "Grand Master",  desc: "Reach Level 5",                      condition: (s) => s.level >= 5 },
+        { id: "point_king",    icon: "💰", name: "Point King",    desc: "Earn 500+ total points",             condition: (s) => s.totalPoints >= 500 }
+      ];
+
+      const LEADERBOARD_DATA = [
+        { name: "Aryan Sharma", points: 4820, avatar: "#e84393", badge: "🏆" },
+        { name: "Priya Nair",   points: 4310, avatar: "#00b894", badge: "🥈" },
+        { name: "Rohan Mehta",  points: 3900, avatar: "#0984e3", badge: "🥈" },
+        { name: "Sneha Gupta",  points: 3410, avatar: "#e17055", badge: "🎓" },
+        { name: "Kabir Singh",  points: 2980, avatar: "#6c63ff", badge: "🔥" },
+        { name: "Aisha Khan",   points: 2500, avatar: "#fdcb6e", badge: "💎" },
+        { name: "Dev Patel",    points: 1850, avatar: "#a29bfe", badge: "⭐" }
+      ];
+
+      const XP_PER_LEVEL = 500;
+      const RANKS = [
+        { min: 1,  label: "🥉 Novice" },
+        { min: 3,  label: "🥈 Apprentice" },
+        { min: 5,  label: "🥇 Scholar" },
+        { min: 8,  label: "💎 Expert" },
+        { min: 12, label: "🏆 Master" },
+        { min: 20, label: "👑 Grand Master" }
+      ];
+
+      // ============================================================
+      // STATE
+      // ============================================================
+      let state = loadState();
+      let quiz = {};
+      let timerInterval = null;
+      let avatarColor = state.avatarColor || "#6c63ff";
+
+      function defaultState() {
+        return {
+          name: "Guest", avatarColor: "#6c63ff",
+          totalPoints: 0, totalXP: 0, level: 1,
+          currentStreak: 0, maxStreak: 0, totalCorrect: 0,
+          totalQuizzes: 0, perfectQuizzes: 0, speedAnswers: 0,
+          maxCombo: 0, subjectsPlayed: [], unlockedBadges: [],
+          dailyGoal: 3, quizzesToday: 0
+        };
+      }
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem("learnquest_state");
+          if (!raw) return defaultState();
+          const s = JSON.parse(raw);
+          s.subjectsPlayed = new Set(s.subjectsPlayed || []);
+          return s;
+        } catch { return defaultState(); }
+      }
+
+      function saveState() {
+        const toSave = { ...state, subjectsPlayed: [...state.subjectsPlayed] };
+        localStorage.setItem("learnquest_state", JSON.stringify(toSave));
+      }
+
+      // ============================================================
+      // INIT
+      // ============================================================
+      function init() {
+        updateSidebar();
+        renderBadges();
+        renderLeaderboard();
+        renderProfileSummary();
+        $("#name-input").val(state.name);
+        $(`[data-color="${state.avatarColor}"]`).addClass("active");
+        $("#goal-slider").val(state.dailyGoal);
+        $("#goal-display").text(state.dailyGoal + " quizzes/day");
+        avatarColor = state.avatarColor;
+      }
+
+      function updateSidebar() {
+        const firstLetter = state.name ? state.name[0].toUpperCase() : "?";
+        $("#avatar-display").text(firstLetter).css("background", state.avatarColor);
+        $("#player-name-display").text(state.name || "Guest");
+        let rank = RANKS[0].label;
+        for (const r of RANKS) { if (state.level >= r.min) rank = r.label; }
+        $("#player-rank").text(rank);
+        const xpInLevel = state.totalXP % XP_PER_LEVEL;
+        const pct = (xpInLevel / XP_PER_LEVEL * 100).toFixed(1);
+        $("#xp-bar").css("width", pct + "%");
+        $("#xp-display").text(xpInLevel + " / " + XP_PER_LEVEL);
+        $("#level-num").text(state.level);
+        $("#stat-points").text(state.totalPoints.toLocaleString());
+        $("#stat-streak").text(state.currentStreak + "🔥");
+        $("#stat-correct").text(state.totalCorrect);
+        $("#stat-badges").text(state.unlockedBadges.length);
+      }
+
+      // ============================================================
+      // NAV
+      // ============================================================
+      $(".nav-btn").on("click", function () {
+        $(".nav-btn").removeClass("active");
+        $(this).addClass("active");
+        const sec = $(this).data("section");
+        $(".section").removeClass("active");
+        $("#section-" + sec).addClass("active");
+        if (sec === "achievements") renderBadges();
+        if (sec === "leaderboard") renderLeaderboard();
+        if (sec === "profile") renderProfileSummary();
+      });
+
+      // ============================================================
+      // QUIZ START
+      // ============================================================
+      $(".subject-card").on("click", function () { startQuiz($(this).data("subject")); });
+
+      function startQuiz(subject) {
+        const bank = QUESTIONS[subject];
+        const shuffled = bank.sort(() => Math.random() - 0.5).slice(0, 5);
+        quiz = { subject, questions: shuffled, current: 0, score: 0, correct: 0, xpGained: 0, combo: 1, timeLeft: 15, hintUsed: false, answered: false };
+        const names = { math: "Mathematics", science: "Science", history: "History", cs: "Computer Science", english: "English", geo: "Geography" };
+        $("#quiz-subject-label").text(names[subject] || subject);
+        $("#subject-picker").hide();
+        $("#quiz-complete").hide();
+        $("#quiz-box").show();
+        $("#combo-bar").hide();
+        showQuestion();
+      }
+
+      function showQuestion() {
+        const q = quiz.questions[quiz.current];
+        quiz.answered = false;
+        quiz.hintUsed = false;
+        quiz.timeLeft = 15;
+        $("#q-counter").text("Q " + (quiz.current + 1) + " / " + quiz.questions.length);
+        $("#question-text").text(q.q);
+        $("#hint-text").text("");
+        $("#hint-btn").prop("disabled", false);
+        $("#result-feedback").hide();
+        const $grid = $("#options-grid").empty();
+        q.opts.forEach(function (opt, i) {
+          $("<button>").addClass("option-btn").text(opt).attr("data-idx", i)
+            .on("click", function () { handleAnswer(i); }).appendTo($grid);
+        });
+        startTimer();
+      }
+
+      // ============================================================
+      // TIMER
+      // ============================================================
+      function startTimer() {
+        clearInterval(timerInterval);
+        updateTimerUI();
+        timerInterval = setInterval(function () {
+          quiz.timeLeft--;
+          updateTimerUI();
+          if (quiz.timeLeft <= 0) { clearInterval(timerInterval); if (!quiz.answered) timeOut(); }
+        }, 1000);
+      }
+
+      function updateTimerUI() {
+        const $t = $("#timer-pill").text("⏱ " + quiz.timeLeft + "s");
+        quiz.timeLeft <= 5 ? $t.addClass("urgent") : $t.removeClass("urgent");
+      }
+
+      // ============================================================
+      // ANSWER — includes COMBO MULTIPLIER (Unique Feature)
+      // ============================================================
+      function handleAnswer(idx) {
+        if (quiz.answered) return;
+        quiz.answered = true;
+        clearInterval(timerInterval);
+        const q = quiz.questions[quiz.current];
+        const correct = idx === q.ans;
+        const timeBonus = Math.floor(quiz.timeLeft * 2);
+        const speedBonus = quiz.timeLeft >= 12;
+        $(".option-btn").prop("disabled", true).eq(q.ans).addClass("correct");
+
+        if (correct) {
+          $(".option-btn").eq(idx).addClass("correct");
+          // === UNIQUE FEATURE: COMBO MULTIPLIER SYSTEM ===
+          // Consecutive correct answers stack a multiplier (up to x6).
+          // Wrong answer resets it. Points = base × combo.
+          quiz.combo = Math.min(quiz.combo + 1, 6);
+          state.currentStreak++;
+          state.maxStreak = Math.max(state.maxStreak, state.currentStreak);
+          if (state.currentStreak > state.maxCombo) state.maxCombo = state.currentStreak;
+          const basePoints = 20 + timeBonus;
+          const comboPoints = Math.round(basePoints * quiz.combo);
+          const xpGain = Math.round(15 * quiz.combo);
+          quiz.score += comboPoints;
+          quiz.correct++;
+          quiz.xpGained += xpGain;
+          if (speedBonus) { state.speedAnswers++; showToast("⚡ Speed bonus! +" + timeBonus + " pts"); }
+          if (quiz.combo >= 2) {
+            $("#combo-bar").show();
+            $("#combo-text").text("🔥 Combo x" + quiz.combo + " — +" + comboPoints + " pts this round!");
+          }
+          showXpPopup("+" + xpGain + " XP");
+          showFeedback(true, "✅ Correct! +" + comboPoints + " pts" + (quiz.combo >= 2 ? " (x" + quiz.combo + " combo!)" : ""));
+        } else {
+          $(".option-btn").eq(idx).addClass("wrong");
+          quiz.combo = 1;
+          state.currentStreak = 0;
+          $("#combo-bar").hide();
+          showFeedback(false, "❌ Wrong! The answer was: " + q.opts[q.ans]);
+        }
+        setTimeout(nextQuestion, 1800);
+      }
+
+      function timeOut() {
+        if (quiz.answered) return;
+        quiz.answered = true;
+        const q = quiz.questions[quiz.current];
+        quiz.combo = 1; state.currentStreak = 0;
+        $("#combo-bar").hide();
+        $(".option-btn").prop("disabled", true).eq(q.ans).addClass("correct");
+        showFeedback(false, "⏰ Time's up! The answer was: " + q.opts[q.ans]);
+        setTimeout(nextQuestion, 1800);
+      }
+
+      function nextQuestion() {
+        quiz.current++;
+        quiz.current < quiz.questions.length ? showQuestion() : endQuiz();
+      }
+
+      // ============================================================
+      // HINT
+      // ============================================================
+      $("#hint-btn").on("click", function () {
+        if (quiz.hintUsed || quiz.answered) return;
+        quiz.hintUsed = true;
+        quiz.score = Math.max(0, quiz.score - 10);
+        $("#hint-text").text("💡 " + quiz.questions[quiz.current].hint);
+        $(this).prop("disabled", true);
+      });
+
+      // ============================================================
+      // QUIZ END
+      // ============================================================
+      function endQuiz() {
+        clearInterval(timerInterval);
+        const isPerfect = quiz.correct === quiz.questions.length;
+        state.totalPoints += quiz.score;
+        state.totalXP += quiz.xpGained;
+        state.totalCorrect += quiz.correct;
+        state.totalQuizzes++;
+        state.subjectsPlayed = new Set([...state.subjectsPlayed, quiz.subject]);
+        if (isPerfect) state.perfectQuizzes++;
+        state.level = Math.floor(state.totalXP / XP_PER_LEVEL) + 1;
+        const newBadges = [];
+        BADGES.forEach(function (b) {
+          if (!state.unlockedBadges.includes(b.id) && b.condition(state)) {
+            state.unlockedBadges.push(b.id);
+            newBadges.push(b);
+          }
+        });
+        saveState();
+        updateSidebar();
+        $("#quiz-box").hide();
+        $("#quiz-complete").show();
+        $("#cs-score").text("+" + quiz.score);
+        $("#cs-correct").text(quiz.correct + "/" + quiz.questions.length);
+        $("#cs-xp").text("+" + quiz.xpGained + " XP");
+        if (newBadges.length > 0) {
+          $("#badge-unlock-text").text("🏅 Badge unlocked: " + newBadges.map(b => b.icon + " " + b.name).join(", "));
+          $("#badge-unlock").show();
+          showToast("🎉 New badge: " + newBadges[0].name + "!");
+        } else { $("#badge-unlock").hide(); }
+      }
+
+      $("#play-again-btn").on("click", function () { $("#quiz-complete").hide(); startQuiz(quiz.subject); });
+      $("#change-subject-btn").on("click", function () { $("#quiz-complete").hide(); $("#subject-picker").show(); });
+
+      // ============================================================
+      // BADGES
+      // ============================================================
+      function renderBadges() {
+        const $grid = $("#badges-grid").empty();
+        BADGES.forEach(function (b) {
+          const unlocked = state.unlockedBadges.includes(b.id);
+          $("<div>").addClass("badge-item " + (unlocked ? "unlocked" : "")).html(
+            `<div class="badge-icon">${b.icon}</div>
+             <div class="badge-name">${b.name}</div>
+             <div class="badge-desc">${b.desc}</div>
+             <div class="badge-locked-label">${unlocked ? "✅ Unlocked" : "🔒 Locked"}</div>`
+          ).appendTo($grid);
+        });
+      }
+
+      // ============================================================
+      // LEADERBOARD
+      // ============================================================
+      function renderLeaderboard() {
+        const allPlayers = [
+          ...LEADERBOARD_DATA,
+          { name: state.name || "You", points: state.totalPoints, avatar: state.avatarColor, badge: "📖", isYou: true }
+        ].sort((a, b) => b.points - a.points);
+        const $table = $("#leaderboard-table").empty();
+        const medals = ["🥇", "🥈", "🥉"];
+        allPlayers.forEach(function (p, i) {
+          $("<div>").addClass("lb-row " + (p.isYou ? "you" : "")).html(
+            `<div class="lb-rank">${medals[i] || (i + 1)}</div>
+             <div class="lb-avatar" style="background:${p.avatar}">${p.name[0].toUpperCase()}</div>
+             <div class="lb-name">${p.name}${p.isYou ? '<span class="lb-you-tag">YOU</span>' : ''}</div>
+             <div class="lb-badge">${p.badge}</div>
+             <div class="lb-points">${p.points.toLocaleString()} pts</div>`
+          ).appendTo($table);
+        });
+      }
+
+      // ============================================================
+      // PROFILE
+      // ============================================================
+      $(".color-swatch").on("click", function () {
+        $(".color-swatch").removeClass("active"); $(this).addClass("active");
+        avatarColor = $(this).data("color");
+      });
+      $("#goal-slider").on("input", function () { $("#goal-display").text($(this).val() + " quizzes/day"); });
+      $("#save-profile-btn").on("click", function () {
+        state.name = $("#name-input").val().trim() || "Guest";
+        state.avatarColor = avatarColor;
+        state.dailyGoal = parseInt($("#goal-slider").val());
+        saveState(); updateSidebar(); renderLeaderboard();
+        $("#save-confirm").fadeIn().delay(2000).fadeOut();
+        showToast("✅ Profile updated!");
+      });
+
+      function renderProfileSummary() {
+        const rows = [
+          ["Total Points", state.totalPoints.toLocaleString()],
+          ["Total XP", state.totalXP],
+          ["Level", state.level],
+          ["Quizzes Completed", state.totalQuizzes],
+          ["Correct Answers", state.totalCorrect],
+          ["Max Combo Reached", "x" + (state.maxCombo || 1)],
+          ["Perfect Quizzes", state.perfectQuizzes],
+          ["Speed Answers", state.speedAnswers],
+          ["Badges Earned", state.unlockedBadges.length + "/" + BADGES.length],
+          ["Subjects Played", [...state.subjectsPlayed].join(", ") || "None yet"]
+        ];
+        const $el = $("#summary-rows").empty();
+        rows.forEach(function ([label, val]) {
+          $el.append(`<div class="summary-row"><span>${label}</span><span class="summary-val">${val}</span></div>`);
+        });
+      }
+
+      // ============================================================
+      // HELPERS
+      // ============================================================
+      function showFeedback(correct, msg) {
+        $("#result-feedback").removeClass("correct wrong").addClass(correct ? "correct" : "wrong").text(msg).show();
+      }
+      function showToast(msg) {
+        const $t = $("#toast").text(msg).addClass("show");
+        setTimeout(() => $t.removeClass("show"), 3000);
+      }
+      function showXpPopup(msg) {
+        const $p = $("#xp-popup").text(msg).removeClass("float");
+        setTimeout(() => $p.addClass("float"), 10);
+        setTimeout(() => $p.removeClass("float"), 1500);
+      }
+
+      init();
+    });
+  </script>
+</body>
+</html>
